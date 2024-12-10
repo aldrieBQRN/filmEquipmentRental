@@ -223,12 +223,89 @@ class Client(User):
         print("\n--- My Rents ---")
         if not self.rented_items:
             print("You have not rented any equipment.")
+            return
+
+        for idx, item in enumerate(self.rented_items, start=1):
+            if not item.get("returned", False):
+                status = "Not Returned"
+            else:
+                status = item.get("remark", "Returned")  # Use the remark for returned items
+
+            extra_charge = (
+                "NULL" if not item.get("returned", False)
+                else f"${item['extra_charge']:.2f}" if item["extra_charge"] > 0
+                else "0"
+            )
+        
+            print(f"{idx}. {item['name']} (Rented: {item['rental_date']}, Due: {item['return_date']}, "
+                  f"Status: {status}, Extra Charge: {extra_charge})")
+
+        print("\nOptions:")
+        print("1. Return Equipment")
+        print("0. Back")
+        choice = input("Enter your choice: ")
+
+        if choice == "1":
+            self.return_equipment()
+        elif choice == "0":
+            return
         else:
-            print("Your rented equipment:")
-            for item in self.rented_items:
-                print(
-                    f"- {item['name']} (Rented: {item['rental_date']}, Return: {item['return_date']})"
-                )
+            print("Invalid choice. Please try again.")
+
+
+
+    def return_equipment(self):
+        print("\n--- Return Equipment ---")
+        not_returned_items = [
+            item for item in self.rented_items if not item.get("returned", False)
+        ]
+
+        if not not_returned_items:
+            print("All equipment has been returned.")
+            return
+
+        for idx, item in enumerate(not_returned_items, start=1):
+            print(f"{idx}. {item['name']} (Rented: {item['rental_date']}, Due: {item['return_date']})")
+
+        try:
+            choice = int(input("Enter the number of the equipment to return: ")) - 1
+            if 0 <= choice < len(not_returned_items):
+                selected_item = not_returned_items[choice]
+
+                # Enter the actual return date
+                return_date = self.get_valid_date("Enter the actual return date (YYYY-MM-DD): ")
+                due_date = selected_item["return_date"]
+
+                # Determine the remark based on return date
+                if return_date > due_date:
+                    late_days = (return_date - due_date).days
+                    daily_fee = next(
+                        equipment.daily_fee
+                        for equipment in system.equipment_list
+                        if equipment.name == selected_item["name"]
+                    )
+                    extra_charge = late_days * 0.005 * daily_fee
+                    selected_item["extra_charge"] = extra_charge
+                    selected_item["returned_late"] = True
+                    selected_item["remark"] = "Returned Late"
+                    print(f"{selected_item['name']} was returned late. Extra charge: ${extra_charge:.2f}.")
+                elif return_date < due_date:
+                    selected_item["extra_charge"] = 0
+                    selected_item["returned_early"] = True
+                    selected_item["remark"] = "Returned Early"
+                    print(f"{selected_item['name']} was returned early.")
+                else:
+                    selected_item["extra_charge"] = 0
+                    selected_item["returned_on_time"] = True
+                    selected_item["remark"] = "Returned On Time"
+                    print(f"{selected_item['name']} was returned on Time.")
+
+                # Mark equipment as returned
+                selected_item["returned"] = True
+            else:
+                print("Invalid selection. Please try again.")
+        except ValueError:
+            print("Invalid input. Please enter a number.")
 
 
 class Admin(User):
@@ -385,4 +462,4 @@ class System:
 
 system = System()
 system.run()
-        
+    
