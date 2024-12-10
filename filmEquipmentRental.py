@@ -1,12 +1,14 @@
+from datetime import datetime, timedelta
+
 class Equipment:
-    def __init__(self, name, quantity, category, price):
+    def __init__(self, name, quantity, category, daily_fee):
         self.name = name
         self.quantity = quantity
         self.category = category
-        self.price = price
+        self.daily_fee = daily_fee
 
     def __str__(self):
-        return f"Name: {self.name}, Quantity: {self.quantity}, Category: {self.category}, Price: ${self.price:.2f}"
+        return f"Name: {self.name}, Quantity: {self.quantity}, Category: {self.category}, Daily Fee: ${self.daily_fee:.2f}"
 
 
 class User:
@@ -21,6 +23,40 @@ class User:
         pass
 
 
+class Rental:
+    def __init__(self, equipment, rental_date, return_date):
+        self.equipment = equipment
+        self.rental_date = rental_date
+        self.return_date = return_date
+        self.rental_days = (return_date - rental_date).days
+
+    def calculate_total(self):
+        return self.equipment.daily_fee * self.rental_days
+
+
+class Payment:
+    @staticmethod
+    def process_payment(client, cart, rental_date, return_date):
+        rental_days = (return_date - rental_date).days
+        total = sum(item.daily_fee * rental_days for item in cart)
+
+        print("\n--- Payment Receipt ---")
+        print(f"Client Name: {client.name}")
+        print(f"Rental Date: {rental_date}")
+        print(f"Return Date: {return_date}")
+        print(f"Rental Period: {rental_days} days")
+        print("\nRented Equipment:")
+        for item in cart:
+            print(f"- {item.name} (Daily Fee: ${item.daily_fee:.2f}, Total: ${item.daily_fee * rental_days:.2f})")
+            item.quantity -= 1
+            client.rented_items.append(
+                {"name": item.name, "rental_date": rental_date, "return_date": return_date}
+            )
+        print(f"\nGrand Total: ${total:.2f}")
+        print("Payment successful! Thank you for renting.")
+        client.cart.clear()
+
+
 class Client(User):
     def __init__(self, name, email, password):
         super().__init__(name, email, password)
@@ -31,7 +67,7 @@ class Client(User):
             print("1. Rent Equipment")
             print("2. My Cart")
             print("3. My Rents")
-            print("4. Logout")
+            print("0. Logout")
             choice = input("Enter your choice: ")
 
             if choice == "1":
@@ -40,7 +76,7 @@ class Client(User):
                 self.manage_cart()
             elif choice == "3":
                 self.view_my_rents()
-            elif choice == "4":
+            elif choice == "0":
                 print("Logging out...")
                 break
             else:
@@ -50,11 +86,11 @@ class Client(User):
         while True:
             print("\n--- Rent Equipment ---")
             print("1. Select Category")
-            print("2. Back to Main Menu")
+            print("0. Back")
             choice = input("Enter your choice: ")
 
-            if choice == "2":
-                return  # Back to main menu
+            if choice == "0":
+                return
 
             if choice == "1":
                 self.select_category()
@@ -67,11 +103,11 @@ class Client(User):
             print("1. Camera")
             print("2. Lens")
             print("3. Lighting")
-            print("4. Back to Main Menu")
+            print("0. Back")
             category_choice = input("Enter your choice: ")
 
-            if category_choice == "4":
-                return  # Back to Client's main menu
+            if category_choice == "0":
+                return
 
             categories = {"1": "Camera", "2": "Lens", "3": "Lighting"}
             category = categories.get(category_choice)
@@ -91,16 +127,16 @@ class Client(User):
 
             if not available_equipment:
                 print("No equipment available in this category.")
-                return  # Back to category selection
+                return
 
             for idx, equipment in enumerate(available_equipment, start=1):
-                print(f"{idx}. {equipment.name} (Quantity: {equipment.quantity}, Price: ${equipment.price:.2f})")
-
-            print("0. Back to Category Selection")
+                print(f"{idx}. {equipment.name} (Quantity: {equipment.quantity}, Daily Fee: ${equipment.daily_fee:.2f})")
+            
+            print("0. Back")
             choice = input("Enter your choice: ")
 
             if choice == "0":
-                return  # Back to category selection
+                return
 
             try:
                 equipment_index = int(choice) - 1
@@ -123,19 +159,22 @@ class Client(User):
             print("\n--- My Cart ---")
             if not self.cart:
                 print("Your cart is empty.")
-                return  # Back to main menu
-
+                return
+                
+            total_fee = sum(item.daily_fee for item in self.cart)
+            
             for idx, equipment in enumerate(self.cart, start=1):
-                print(f"{idx}. {equipment.name} (Price: ${equipment.price:.2f})")
-
+                print(f"{idx}. {equipment.name} (Daily Fee: ${equipment.daily_fee:.2f})")
+            
+            print(f"\nTotal Daily Fee: ${total_fee:.2f}")
             print("\nOptions:")
             print("1. Remove Item")
             print("2. Proceed to Payment")
-            print("3. Back to Main Menu")
+            print("0. Back")
             choice = input("Enter your choice: ")
 
-            if choice == "3":
-                return  # Back to main menu
+            if choice == "0":
+                return
 
             if choice == "1":
                 self.remove_from_cart()
@@ -157,18 +196,28 @@ class Client(User):
             print("Invalid selection. Please try again.")
 
     def proceed_to_payment(self):
-        total = sum(equipment.price for equipment in self.cart)
-        print(f"\nTotal amount: ${total:.2f}")
-        confirm = input("Do you want to proceed with the payment? (yes/no): ")
+        print("\nChoose Rental Date:")
+        rental_date = self.get_valid_date("Rental Date (YYYY-MM-DD): ")
 
-        if confirm.lower() == "yes":
-            for item in self.cart:
-                item.quantity -= 1  # Deduct quantity from the system
-                self.rented_items.append(item.name)  # Add to rented items
-            self.cart.clear()  # Clear the cart
-            print("Payment successful! Thank you for renting.")
-        else:
-            print("Payment canceled.")
+        print("\nChoose Return Date:")
+        return_date = self.get_valid_date("Return Date (YYYY-MM-DD): ", rental_date)
+
+        Payment.process_payment(self, self.cart, rental_date, return_date)
+
+    def get_valid_date(self, prompt, min_date=None):
+        while True:
+            date_str = input(prompt)
+            try:
+                date = datetime.strptime(date_str, "%Y-%m-%d").date()
+                today = datetime.today().date()
+                if min_date is None:
+                    min_date = today
+                if date < min_date:
+                    print(f"Date cannot be earlier than {min_date}. Please try again.")
+                    continue
+                return date
+            except ValueError:
+                print("Invalid date format. Please use YYYY-MM-DD.")
 
     def view_my_rents(self):
         print("\n--- My Rents ---")
@@ -177,7 +226,9 @@ class Client(User):
         else:
             print("Your rented equipment:")
             for item in self.rented_items:
-                print(f"- {item}")
+                print(
+                    f"- {item['name']} (Rented: {item['rental_date']}, Return: {item['return_date']})"
+                )
 
 
 class Admin(User):
@@ -190,7 +241,7 @@ class Admin(User):
             print("1. View Users")
             print("2. View Equipment")
             print("3. Add Equipment")
-            print("4. Logout")
+            print("0. Logout")
             choice = input("Enter your choice: ")
 
             if choice == "1":
@@ -199,7 +250,7 @@ class Admin(User):
                 self.select_category()
             elif choice == "3":
                 self.add_equipment()
-            elif choice == "4":
+            elif choice == "0":
                 print("Logging out...")
                 break
             else:
@@ -212,11 +263,11 @@ class Admin(User):
             print("1. Camera")
             print("2. Lens")
             print("3. Lighting")
-            print("4. Back to Main Menu")
+            print("0. Back")
             category_choice = input("Enter your choice: ")
 
-            if category_choice == "4":
-                return  # Back to Admin's main menu
+            if category_choice == "0":
+                return
 
             categories = {"1": "Camera", "2": "Lens", "3": "Lighting"}
             category = categories.get(category_choice)
@@ -235,7 +286,7 @@ class Admin(User):
 
         if not available_equipment:
             print("No equipment available in this category.")
-            return  # Back to category selection
+            return
 
         for equipment in available_equipment:
             print(equipment)
@@ -244,23 +295,23 @@ class Admin(User):
         print("\n--- Add Equipment ---")
         name = input("Enter equipment name: ")
         quantity = int(input("Enter equipment quantity: "))
-        price = float(input("Enter equipment price: "))
+        price = float(input("Enter daily fee: "))
         print("Select a category:")
         print("1. Camera")
         print("2. Lens")
         print("3. Lighting")
-        category_choice = input("Enter category: ")
+        category_choice = input("Enter your choice: ")
 
         categories = {"1": "Camera", "2": "Lens", "3": "Lighting"}
         category = categories.get(category_choice)
 
         if not category:
-            print("Invalid category. Please try again.")
+            print("Invalid category. Equipment not added.")
             return
 
         new_equipment = Equipment(name, quantity, category, price)
         system.equipment_list.append(new_equipment)
-        print(f"Equipment '{name}' added successfully!")
+        print(f"{new_equipment.name} has been added to {category}.")
 
 
 class System:
@@ -319,20 +370,19 @@ class System:
             print("\n--- Welcome to the System ---")
             print("1. Login")
             print("2. Create Account")
-            print("3. Exit")
+            print("0. Exit")
             choice = input("Enter your choice: ")
 
             if choice == "1":
                 self.login()
             elif choice == "2":
                 self.create_account()
-            elif choice == "3":
-                print("Exiting the system. Goodbye!")
+            elif choice == "0":
+                print("Goodbye!")
                 break
             else:
                 print("Invalid choice. Please try again.")
 
-
-# Create and run the system
 system = System()
 system.run()
+        
