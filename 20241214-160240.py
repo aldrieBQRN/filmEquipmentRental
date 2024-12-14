@@ -1,0 +1,593 @@
+from datetime import datetime, timedelta
+import subprocess
+
+class Equipment:
+    def __init__(self, name, quantity, category, daily_fee):
+        self.name = name
+        self.quantity = quantity
+        self.category = category
+        self.daily_fee = daily_fee
+
+    def __str__(self):
+        return f"Name: {self.name}, Quantity: {self.quantity}, Category: {self.category}, Daily Fee: ${self.daily_fee:.2f}"
+
+
+class User:
+    def __init__(self, name, email, password):
+        self.name = name
+        self.email = email
+        self.password = password
+        self.cart = []
+        self.rented_items = []
+
+    def menu(self):
+        pass
+
+
+class Rental:
+    def __init__(self, equipment, rental_date, return_date):
+        self.equipment = equipment
+        self.rental_date = rental_date
+        self.return_date = return_date
+        self.rental_days = (return_date - rental_date).days
+
+    def calculate_total(self):
+        return self.equipment.daily_fee * self.rental_days
+
+
+class Payment:
+    @staticmethod
+    def process_payment(client, cart, rental_date, return_date):
+        rental_days = (return_date - rental_date).days
+        total = sum(item.daily_fee * rental_days for item in cart)
+        subprocess.run('clear')
+        print("\n--- Payment Receipt ---")
+        print(f"Client Name: {client.name}")
+        print(f"Rental Date: {rental_date}")
+        print(f"Return Date: {return_date}")
+        print(f"Rental Period: {rental_days} days")
+        print("\nRented Equipment:")
+        for item in cart:
+            print(f"- {item.name} (Daily Fee: ${item.daily_fee:.2f}, Total: ${item.daily_fee * rental_days:.2f})")
+            item.quantity -= 1
+            client.rented_items.append(
+                {"name": item.name, "rental_date": rental_date, "return_date": return_date}
+            )
+        print(f"\nGrand Total: ${total:.2f}")
+        print("Payment successful! Thank you for renting.")
+        input("Press Enter to continue...")
+        client.cart.clear()
+
+
+class Client(User):
+    def __init__(self, name, email, password):
+        super().__init__(name, email, password)
+
+    def menu(self):
+        while True:
+            subprocess.run('clear')
+            print(f"\n--- Welcome, {self.name}! ---")
+            print("1. Rent Equipment")
+            print("2. My Cart")
+            print("3. My Rents")
+            print("0. Logout")
+            choice = input("Enter your choice: ")
+
+            if choice == "1":
+                self.select_or_back()
+            elif choice == "2":
+                self.manage_cart()
+            elif choice == "3":
+                self.view_my_rents()
+            elif choice == "0":
+                print("Logging out...")
+                break
+            else:
+                print("Invalid choice. Please try again.")
+                input("Press Enter to continue...")
+
+    def select_or_back(self):
+        while True:
+            subprocess.run('clear')
+            print("\n--- Rent Equipment ---")
+            print("1. Select Category")
+            print("0. Back")
+            choice = input("Enter your choice: ")
+
+            if choice == "0":
+                return
+
+            if choice == "1":
+                self.select_category()
+            else:
+                print("Invalid choice. Please try again.")
+                input("Press Enter to continue...")
+
+    def select_category(self):
+        while True:
+            subprocess.run('clear')
+            print("\n--- Select Category ---")
+            print("1. Camera")
+            print("2. Lens")
+            print("3. Lighting")
+            print("0. Back")
+            category_choice = input("Enter your choice: ")
+
+            if category_choice == "0":
+                return
+
+            categories = {"1": "Camera", "2": "Lens", "3": "Lighting"}
+            category = categories.get(category_choice)
+
+            if not category:
+                print("Invalid category. Please try again.")
+                input("Press Enter to continue...")
+                continue
+
+            self.show_available_equipment(category)
+
+    def show_available_equipment(self, category):
+        while True:
+            subprocess.run('clear')
+            print(f"\n--- {category} Equipment ---")
+            available_equipment = [
+                equipment for equipment in system.equipment_list if equipment.category == category
+            ]
+
+            if not available_equipment:
+                print("No equipment available in this category.")
+                input("Press Enter to continue...")
+                return
+
+            for idx, equipment in enumerate(available_equipment, start=1):
+                print(f"{idx}. {equipment.name} (Quantity: {equipment.quantity}, Daily Fee: ${equipment.daily_fee:.2f})")
+            
+            print("0. Back")
+            choice = input("Enter your choice: ")
+
+            if choice == "0":
+                return
+
+            try:
+                equipment_index = int(choice) - 1
+                selected_equipment = available_equipment[equipment_index]
+            except (ValueError, IndexError):
+                print("Invalid selection. Please try again.")
+                input("Press Enter to continue...")
+                continue
+
+            self.add_to_cart(selected_equipment)
+
+    def add_to_cart(self, equipment):
+        if equipment.quantity > 0:
+            self.cart.append(equipment)
+            print(f"{equipment.name} has been added to your cart.")
+            input("Press Enter to continue...")
+        else:
+            print("Sorry, this equipment is out of stock.")
+            input("Press Enter to continue...")
+
+    def manage_cart(self):
+        while True:
+            subprocess.run('clear')
+            print("\n--- My Cart ---")
+            if not self.cart:
+                print("Your cart is empty.")
+                input("Press Enter to continue...")
+                return
+                
+            total_fee = sum(item.daily_fee for item in self.cart)
+            
+            for idx, equipment in enumerate(self.cart, start=1):
+                print(f"{idx}. {equipment.name} (Daily Fee: ${equipment.daily_fee:.2f})")
+            
+            print(f"\nTotal Daily Fee: ${total_fee:.2f}")
+            print("\nOptions:")
+            print("1. Remove Item")
+            print("2. Proceed to Payment")
+            print("0. Back")
+            choice = input("Enter your choice: ")
+
+            if choice == "0":
+                return
+
+            if choice == "1":
+                self.remove_from_cart()
+            elif choice == "2":
+                self.proceed_to_payment()
+            else:
+                print("Invalid choice. Please try again.")
+                input("Press Enter to continue...")
+
+    def remove_from_cart(self):
+        subprocess.run('clear')
+        print("\n--- Remove Item ---")
+        for idx, equipment in enumerate(self.cart, start=1):
+            print(f"{idx}. {equipment.name}")
+
+        try:
+            choice = int(input("Enter the number of the item to remove: ")) - 1
+            removed_item = self.cart.pop(choice)
+            print(f"{removed_item.name} has been removed from your cart.")
+            input("Press Enter to continue...")
+        except (ValueError, IndexError):
+            print("Invalid selection. Please try again.")
+            input("Press Enter to continue...")
+
+    def proceed_to_payment(self):
+        subprocess.run('clear')
+        print("\nChoose Rental Date:")
+        rental_date = self.get_valid_date("Rental Date (YYYY-MM-DD): ")
+
+        print("\nChoose Return Date:")
+        return_date = self.get_valid_date("Return Date (YYYY-MM-DD): ", rental_date)
+
+        Payment.process_payment(self, self.cart, rental_date, return_date)
+
+    def get_valid_date(self, prompt, min_date=None):
+        while True:
+            date_str = input(prompt)
+            try:
+                date = datetime.strptime(date_str, "%Y-%m-%d").date()
+                today = datetime.today().date()
+                if min_date is None:
+                    min_date = today
+                if date < min_date:
+                    print(f"Date cannot be earlier than {min_date}. Please try again.")
+                    input("Press Enter to continue...")
+                    continue
+                return date
+            except ValueError:
+                print("Invalid date format. Please use YYYY-MM-DD.")
+                input("Press Enter to continue...")
+
+    def view_my_rents(self):
+        subprocess.run('clear')
+        print("\n--- My Rents ---")
+        if not self.rented_items:
+            print("You have not rented any equipment.")
+            input("Press Enter to continue...")
+            return
+
+        for idx, item in enumerate(self.rented_items, start=1):
+            if not item.get("returned", False):
+                status = "Not Returned"
+            else:
+                status = item.get("remark", "Returned")  # Use the remark for returned items
+
+            extra_charge = (
+                "NULL" if not item.get("returned", False)
+                else f"${item['extra_charge']:.2f}" if item["extra_charge"] > 0
+                else "0"
+            )
+        
+            print(f"{idx}. {item['name']} (Rented: {item['rental_date']}, Due: {item['return_date']}, "
+                  f"Status: {status}, Extra Charge: {extra_charge})")
+
+        print("\nOptions:")
+        print("1. Return Equipment")
+        print("0. Back")
+        choice = input("Enter your choice: ")
+
+        if choice == "1":
+            self.return_equipment()
+        elif choice == "0":
+            return
+        else:
+            print("Invalid choice. Please try again.")
+            input("Press Enter to continue...")
+
+
+
+    def return_equipment(self):
+        subprocess.run('clear')
+        print("\n--- Return Equipment ---")
+        not_returned_items = [
+            item for item in self.rented_items if not item.get("returned", False)
+        ]
+
+        if not not_returned_items:
+            print("All equipment has been returned.")
+            input("Press Enter to continue...")
+            return
+
+        for idx, item in enumerate(not_returned_items, start=1):
+            print(f"{idx}. {item['name']} (Rented: {item['rental_date']}, Due: {item['return_date']})")
+
+        try:
+            choice = int(input("Enter the number of the equipment to return: ")) - 1
+            if 0 <= choice < len(not_returned_items):
+                selected_item = not_returned_items[choice]
+
+                # Enter the actual return date
+                return_date = self.get_valid_date("Enter the actual return date (YYYY-MM-DD): ")
+                due_date = selected_item["return_date"]
+
+                # Determine the remark based on return date
+                if return_date > due_date:
+                    late_days = (return_date - due_date).days
+                    daily_fee = next(
+                        equipment.daily_fee
+                        for equipment in system.equipment_list
+                        if equipment.name == selected_item["name"]
+                    )
+                    extra_charge = late_days * 0.005 * daily_fee
+                    selected_item["extra_charge"] = extra_charge
+                    selected_item["returned_late"] = True
+                    selected_item["remark"] = "Returned Late"
+                    print(f"{selected_item['name']} was returned late. Extra charge: ${extra_charge:.2f}.")
+                    input("Press Enter to continue...")
+                elif return_date < due_date:
+                    selected_item["extra_charge"] = 0
+                    selected_item["returned_early"] = True
+                    selected_item["remark"] = "Returned Early"
+                    print(f"{selected_item['name']} was returned early.")
+                    input("Press Enter to continue...")
+                else:
+                    selected_item["extra_charge"] = 0
+                    selected_item["returned_on_time"] = True
+                    selected_item["remark"] = "Returned On Time"
+                    print(f"{selected_item['name']} was returned on Time.")
+                    input("Press Enter to continue...")
+
+                # Mark equipment as returned
+                selected_item["returned"] = True
+            else:
+                print("Invalid selection. Please try again.")
+                input("Press Enter to continue...")
+        except ValueError:
+            print("Invalid input. Please enter a number.")
+            input("Press Enter to continue...")
+
+
+class Admin(User):
+    def __init__(self, email, password):
+        super().__init__("Admin", email, password)
+
+    def menu(self):
+        while True:
+            subprocess.run('clear')
+            print("\n--- Admin Menu ---")
+            print("1. View Users")
+            print("2. View Equipment")
+            print("3. Add Equipment")
+            print("0. Logout")
+            choice = input("Enter your choice: ")
+
+            if choice == "1":
+                self.view_users()
+            elif choice == "2":
+                self.select_category()
+            elif choice == "3":
+                self.add_equipment()
+            elif choice == "0":
+                print("Logging out...")
+                break
+            else:
+                print("Invalid choice. Please try again.")
+                input("Press Enter to continue...")
+
+    def view_users(self):
+        subprocess.run('clear')
+        print("\n--- Registered Users ---")
+        if not system.users:
+            print("No users registered.")
+            input("Press Enter to continue...")
+            return
+
+        for idx, user in enumerate(system.users, start=1):
+            print(f"{idx}. {user.name} ({user.email})")
+
+        try:
+            choice = int(input("\nEnter the number of the user to view details (or 0 to go back): ")) - 1
+            if choice == -1:
+                return
+
+            if 0 <= choice < len(system.users):
+                self.view_user_rental_history(system.users[choice])
+            else:
+                print("Invalid selection. Please try again.")
+                input("Press Enter to continue...")
+        except ValueError:
+            print("Invalid input. Please enter a valid number.")
+            input("Press Enter to continue...")
+
+    def view_user_rental_history(self, user):
+        subprocess.run('clear')
+        print(f"\n--- Rental History for {user.name} ---")
+        if not user.rented_items:
+            print("No rental history available for this user.")
+            input("Press Enter to continue...")
+            return
+
+        for idx, item in enumerate(user.rented_items, start=1):
+            status = "Not Returned" if not item.get("returned", False) else item.get("remark", "Returned")
+            extra_charge = (
+                "NULL" if not item.get("returned", False)
+                else f"${item['extra_charge']:.2f}" if item["extra_charge"] > 0
+                else "0"
+            )
+
+            print(
+                f"{idx}. {item['name']} (Rented: {item['rental_date']}, Due: {item['return_date']}, "
+                f"Status: {status}, Extra Charge: {extra_charge})"
+            )
+
+        input("\nPress Enter to return to the user list.")
+
+
+    def select_category(self):
+        while True:
+            subprocess.run('clear')
+            print("\n--- View Equipment ---")
+            print("Select a category:")
+            print("1. Camera")
+            print("2. Lens")
+            print("3. Lighting")
+            print("0. Back")
+            category_choice = input("Enter your choice: ")
+
+            if category_choice == "0":
+                return
+
+            categories = {"1": "Camera", "2": "Lens", "3": "Lighting"}
+            category = categories.get(category_choice)
+
+            if not category:
+                print("Invalid category. Please try again.")
+                input("Press Enter to continue...")
+                continue
+
+            self.show_available_equipment(category)
+
+    def show_available_equipment(self, category):
+        subprocess.run('clear')
+        print(f"\n--- {category} Equipment ---")
+        available_equipment = [
+            equipment for equipment in system.equipment_list if equipment.category == category
+        ]
+
+        if not available_equipment:
+            print("No equipment available in this category.")
+            input("Press Enter to continue...")
+            return
+
+        for equipment in available_equipment:
+            print(equipment)
+        input("Press Enter to continue...")    
+
+    def add_equipment(self):
+        subprocess.run('clear')
+        print("\n--- Add Equipment ---")
+        name = input("Enter equipment name: ")
+        quantity = int(input("Enter equipment quantity: "))
+        price = float(input("Enter daily fee: "))
+        print("Select a category:")
+        print("1. Camera")
+        print("2. Lens")
+        print("3. Lighting")
+        category_choice = input("Enter your choice: ")
+
+        categories = {"1": "Camera", "2": "Lens", "3": "Lighting"}
+        category = categories.get(category_choice)
+
+        if not category:
+            print("Invalid category. Equipment not added.")
+            input("Press Enter to continue...")
+            return
+
+        new_equipment = Equipment(name, quantity, category, price)
+        system.equipment_list.append(new_equipment)
+        print(f"{new_equipment.name} has been added to {category}.")
+
+
+class System:
+    def __init__(self):
+        self.users = []
+        self.equipment_list = []
+        self.admin_email = "admin"
+        self.admin_password = "admin"
+
+        # Predefined equipment
+        self.add_default_equipment()
+        self.add_default_users()
+
+    def add_default_equipment(self):
+        self.equipment_list = [
+            Equipment("Canon EOS R5", 5, "Camera", 200.0),
+            Equipment("Sony A7 III", 3, "Camera", 180.0),
+            Equipment("Fujifilm X-T4", 4, "Camera", 150.0),
+            Equipment("Canon 50mm f/1.2", 2, "Lens", 50.0),
+            Equipment("Sony 24-70mm f/2.8", 2, "Lens", 70.0),
+            Equipment("Profoto B10 Lighting Kit", 3, "Lighting", 100.0),
+            Equipment("Godox SL60W", 5, "Lighting", 80.0),
+        ]
+
+    def add_default_users(self):
+        # Predefined users
+        user1 = Client("Aldrie Baquiran", "drei", "drei123")
+        user1.rented_items = [
+            {"name": "Canon EOS R5", "rental_date": datetime(2024, 12, 1).date(), "return_date": datetime(2024, 12, 5).date(), "remark": "Returned On Time", "returned": True, "extra_charge": 0},
+            {"name": "Sony A7 III", "rental_date": datetime(2024, 12, 7).date(), "return_date": datetime(2024, 12, 10).date()},
+        ]
+
+        user2 = Client("Bob Mendoza", "bob17@gmail.com", "bob17")
+        user2.rented_items = [
+            {"name": "Fujifilm X-T4", "rental_date": datetime(2024, 12, 3).date(), "return_date": datetime(2024, 12, 6).date(), "remark": "Returned Late", "returned": True, "extra_charge": 20},
+        ]
+
+        user3 = Client("Charlie Pot", "charlie03@gmail.com", "charlie3")
+        user3.rented_items = []
+
+        user4 = Client("Claire Cabral", "claire09@gmail.com", "claire09")
+        user4.rented_items = [
+            {"name": "Canon 50mm f/1.2", "rental_date": datetime(2024, 12, 2).date(), "return_date": datetime(2024, 12, 4).date(), "remark": "Returned Early", "returned": True, "extra_charge": 0},
+        ]
+
+        user5 = Client("Clarisse Cabral", "clarisse15@gmail.com", "clarisse15")
+        user5.rented_items = [
+            {"name": "Sony 24-70mm f/2.8", "rental_date": datetime(2024, 12, 5).date(), "return_date": datetime(2024, 12, 9).date()},
+        ]
+
+        self.users.extend([user1, user2, user3, user4, user5])
+
+
+    def create_account(self):
+        subprocess.run('clear')
+        print("\n--- Create Account ---")
+        name = input("Enter your name: ")
+        email = input("Enter your email: ")
+        password = input("Enter your password: ")
+
+        for user in self.users:
+            if user.email == email:
+                print("This email is already registered. Please try again.")
+                input("Press Enter to continue...")
+                return
+
+        new_user = Client(name, email, password)
+        self.users.append(new_user)
+        print("Account created successfully! Please log in.")
+        input("Press Enter to continue...")
+
+    def login(self):
+        subprocess.run('clear')
+        print("\n--- Login ---")
+        email = input("Enter your email: ")
+        password = input("Enter your password: ")
+
+        if email == self.admin_email and password == self.admin_password:
+            admin = Admin(email, password)
+            admin.menu()
+        else:
+            for user in self.users:
+                if user.email == email and user.password == password:
+                    user.menu()
+                    return
+            print("Invalid credentials. Please try again.")
+            input("Press Enter to continue...")
+
+    def run(self):
+        while True:
+            subprocess.run('clear')
+            print("\n--- Welcome to the System ---")
+            print("1. Login")
+            print("2. Create Account")
+            print("0. Exit")
+            choice = input("Enter your choice: ")
+
+            if choice == "1":
+                self.login()
+            elif choice == "2":
+                self.create_account()
+            elif choice == "0":
+                print("Existing...")
+                break
+            else:
+                print("Invalid choice. Please try again.")
+                input("Press Enter to continue...")
+
+system = System()
+system.run()
+    
+                
