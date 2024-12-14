@@ -209,6 +209,7 @@ class Client(User):
             choice = int(input("Enter the number of the item to remove: ")) - 1
             removed_item = self.cart.pop(choice)
             print(f"{removed_item.name} has been removed from your cart.")
+            input("Press Enter to continue...")
         except (ValueError, IndexError):
             print("Invalid selection. Please try again.")
             input("Press Enter to continue...")
@@ -315,16 +316,19 @@ class Client(User):
                     selected_item["returned_late"] = True
                     selected_item["remark"] = "Returned Late"
                     print(f"{selected_item['name']} was returned late. Extra charge: ${extra_charge:.2f}.")
+                    input("Press Enter to continue...")
                 elif return_date < due_date:
                     selected_item["extra_charge"] = 0
                     selected_item["returned_early"] = True
                     selected_item["remark"] = "Returned Early"
                     print(f"{selected_item['name']} was returned early.")
+                    input("Press Enter to continue...")
                 else:
                     selected_item["extra_charge"] = 0
                     selected_item["returned_on_time"] = True
                     selected_item["remark"] = "Returned On Time"
                     print(f"{selected_item['name']} was returned on Time.")
+                    input("Press Enter to continue...")
 
                 # Mark equipment as returned
                 selected_item["returned"] = True
@@ -342,6 +346,7 @@ class Admin(User):
 
     def menu(self):
         while True:
+            subprocess.run('clear')
             print("\n--- Admin Menu ---")
             print("1. View Users")
             print("2. View Equipment")
@@ -360,11 +365,14 @@ class Admin(User):
                 break
             else:
                 print("Invalid choice. Please try again.")
+                input("Press Enter to continue...")
 
     def view_users(self):
+        subprocess.run('clear')
         print("\n--- Registered Users ---")
         if not system.users:
             print("No users registered.")
+            input("Press Enter to continue...")
             return
 
         for idx, user in enumerate(system.users, start=1):
@@ -379,13 +387,17 @@ class Admin(User):
                 self.view_user_rental_history(system.users[choice])
             else:
                 print("Invalid selection. Please try again.")
+                input("Press Enter to continue...")
         except ValueError:
             print("Invalid input. Please enter a valid number.")
+            input("Press Enter to continue...")
 
     def view_user_rental_history(self, user):
+        subprocess.run('clear')
         print(f"\n--- Rental History for {user.name} ---")
         if not user.rented_items:
             print("No rental history available for this user.")
+            input("Press Enter to continue...")
             return
 
         for idx, item in enumerate(user.rented_items, start=1):
@@ -406,6 +418,7 @@ class Admin(User):
 
     def select_category(self):
         while True:
+            subprocess.run('clear')
             print("\n--- View Equipment ---")
             print("Select a category:")
             print("1. Camera")
@@ -422,11 +435,13 @@ class Admin(User):
 
             if not category:
                 print("Invalid category. Please try again.")
+                input("Press Enter to continue...")
                 continue
 
             self.show_available_equipment(category)
 
     def show_available_equipment(self, category):
+        subprocess.run('clear')
         print(f"\n--- {category} Equipment ---")
         available_equipment = [
             equipment for equipment in system.equipment_list if equipment.category == category
@@ -434,12 +449,15 @@ class Admin(User):
 
         if not available_equipment:
             print("No equipment available in this category.")
+            input("Press Enter to continue...")
             return
 
         for equipment in available_equipment:
             print(equipment)
+        input("Press Enter to continue...")    
 
     def add_equipment(self):
+        subprocess.run('clear')
         print("\n--- Add Equipment ---")
         name = input("Enter equipment name: ")
         quantity = int(input("Enter equipment quantity: "))
@@ -455,6 +473,7 @@ class Admin(User):
 
         if not category:
             print("Invalid category. Equipment not added.")
+            input("Press Enter to continue...")
             return
 
         new_equipment = Equipment(name, quantity, category, price)
@@ -562,7 +581,7 @@ class System:
             elif choice == "2":
                 self.create_account()
             elif choice == "0":
-                print("Goodbye!")
+                print("Existing...")
                 break
             else:
                 print("Invalid choice. Please try again.")
@@ -572,3 +591,8 @@ system = System()
 system.run()
     
                 
+
+
+
+
+
