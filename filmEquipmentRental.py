@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import subprocess
 
 class Equipment:
     def __init__(self, name, quantity, category, daily_fee):
@@ -39,7 +40,7 @@ class Payment:
     def process_payment(client, cart, rental_date, return_date):
         rental_days = (return_date - rental_date).days
         total = sum(item.daily_fee * rental_days for item in cart)
-
+        subprocess.run('clear')
         print("\n--- Payment Receipt ---")
         print(f"Client Name: {client.name}")
         print(f"Rental Date: {rental_date}")
@@ -54,6 +55,7 @@ class Payment:
             )
         print(f"\nGrand Total: ${total:.2f}")
         print("Payment successful! Thank you for renting.")
+        input("Press Enter to continue...")
         client.cart.clear()
 
 
@@ -63,6 +65,7 @@ class Client(User):
 
     def menu(self):
         while True:
+            subprocess.run('clear')
             print(f"\n--- Welcome, {self.name}! ---")
             print("1. Rent Equipment")
             print("2. My Cart")
@@ -81,9 +84,11 @@ class Client(User):
                 break
             else:
                 print("Invalid choice. Please try again.")
+                input("Press Enter to continue...")
 
     def select_or_back(self):
         while True:
+            subprocess.run('clear')
             print("\n--- Rent Equipment ---")
             print("1. Select Category")
             print("0. Back")
@@ -96,9 +101,11 @@ class Client(User):
                 self.select_category()
             else:
                 print("Invalid choice. Please try again.")
+                input("Press Enter to continue...")
 
     def select_category(self):
         while True:
+            subprocess.run('clear')
             print("\n--- Select Category ---")
             print("1. Camera")
             print("2. Lens")
@@ -114,12 +121,14 @@ class Client(User):
 
             if not category:
                 print("Invalid category. Please try again.")
+                input("Press Enter to continue...")
                 continue
 
             self.show_available_equipment(category)
 
     def show_available_equipment(self, category):
         while True:
+            subprocess.run('clear')
             print(f"\n--- {category} Equipment ---")
             available_equipment = [
                 equipment for equipment in system.equipment_list if equipment.category == category
@@ -127,6 +136,7 @@ class Client(User):
 
             if not available_equipment:
                 print("No equipment available in this category.")
+                input("Press Enter to continue...")
                 return
 
             for idx, equipment in enumerate(available_equipment, start=1):
@@ -143,6 +153,7 @@ class Client(User):
                 selected_equipment = available_equipment[equipment_index]
             except (ValueError, IndexError):
                 print("Invalid selection. Please try again.")
+                input("Press Enter to continue...")
                 continue
 
             self.add_to_cart(selected_equipment)
@@ -151,14 +162,18 @@ class Client(User):
         if equipment.quantity > 0:
             self.cart.append(equipment)
             print(f"{equipment.name} has been added to your cart.")
+            input("Press Enter to continue...")
         else:
             print("Sorry, this equipment is out of stock.")
+            input("Press Enter to continue...")
 
     def manage_cart(self):
         while True:
+            subprocess.run('clear')
             print("\n--- My Cart ---")
             if not self.cart:
                 print("Your cart is empty.")
+                input("Press Enter to continue...")
                 return
                 
             total_fee = sum(item.daily_fee for item in self.cart)
@@ -182,8 +197,10 @@ class Client(User):
                 self.proceed_to_payment()
             else:
                 print("Invalid choice. Please try again.")
+                input("Press Enter to continue...")
 
     def remove_from_cart(self):
+        subprocess.run('clear')
         print("\n--- Remove Item ---")
         for idx, equipment in enumerate(self.cart, start=1):
             print(f"{idx}. {equipment.name}")
@@ -194,8 +211,10 @@ class Client(User):
             print(f"{removed_item.name} has been removed from your cart.")
         except (ValueError, IndexError):
             print("Invalid selection. Please try again.")
+            input("Press Enter to continue...")
 
     def proceed_to_payment(self):
+        subprocess.run('clear')
         print("\nChoose Rental Date:")
         rental_date = self.get_valid_date("Rental Date (YYYY-MM-DD): ")
 
@@ -214,15 +233,19 @@ class Client(User):
                     min_date = today
                 if date < min_date:
                     print(f"Date cannot be earlier than {min_date}. Please try again.")
+                    input("Press Enter to continue...")
                     continue
                 return date
             except ValueError:
                 print("Invalid date format. Please use YYYY-MM-DD.")
+                input("Press Enter to continue...")
 
     def view_my_rents(self):
+        subprocess.run('clear')
         print("\n--- My Rents ---")
         if not self.rented_items:
             print("You have not rented any equipment.")
+            input("Press Enter to continue...")
             return
 
         for idx, item in enumerate(self.rented_items, start=1):
@@ -251,10 +274,12 @@ class Client(User):
             return
         else:
             print("Invalid choice. Please try again.")
+            input("Press Enter to continue...")
 
 
 
     def return_equipment(self):
+        subprocess.run('clear')
         print("\n--- Return Equipment ---")
         not_returned_items = [
             item for item in self.rented_items if not item.get("returned", False)
@@ -262,6 +287,7 @@ class Client(User):
 
         if not not_returned_items:
             print("All equipment has been returned.")
+            input("Press Enter to continue...")
             return
 
         for idx, item in enumerate(not_returned_items, start=1):
@@ -304,8 +330,10 @@ class Client(User):
                 selected_item["returned"] = True
             else:
                 print("Invalid selection. Please try again.")
+                input("Press Enter to continue...")
         except ValueError:
             print("Invalid input. Please enter a number.")
+            input("Press Enter to continue...")
 
 
 class Admin(User):
@@ -332,6 +360,49 @@ class Admin(User):
                 break
             else:
                 print("Invalid choice. Please try again.")
+
+    def view_users(self):
+        print("\n--- Registered Users ---")
+        if not system.users:
+            print("No users registered.")
+            return
+
+        for idx, user in enumerate(system.users, start=1):
+            print(f"{idx}. {user.name} ({user.email})")
+
+        try:
+            choice = int(input("\nEnter the number of the user to view details (or 0 to go back): ")) - 1
+            if choice == -1:
+                return
+
+            if 0 <= choice < len(system.users):
+                self.view_user_rental_history(system.users[choice])
+            else:
+                print("Invalid selection. Please try again.")
+        except ValueError:
+            print("Invalid input. Please enter a valid number.")
+
+    def view_user_rental_history(self, user):
+        print(f"\n--- Rental History for {user.name} ---")
+        if not user.rented_items:
+            print("No rental history available for this user.")
+            return
+
+        for idx, item in enumerate(user.rented_items, start=1):
+            status = "Not Returned" if not item.get("returned", False) else item.get("remark", "Returned")
+            extra_charge = (
+                "NULL" if not item.get("returned", False)
+                else f"${item['extra_charge']:.2f}" if item["extra_charge"] > 0
+                else "0"
+            )
+
+            print(
+                f"{idx}. {item['name']} (Rented: {item['rental_date']}, Due: {item['return_date']}, "
+                f"Status: {status}, Extra Charge: {extra_charge})"
+            )
+
+        input("\nPress Enter to return to the user list.")
+
 
     def select_category(self):
         while True:
@@ -400,6 +471,7 @@ class System:
 
         # Predefined equipment
         self.add_default_equipment()
+        self.add_default_users()
 
     def add_default_equipment(self):
         self.equipment_list = [
@@ -412,7 +484,37 @@ class System:
             Equipment("Godox SL60W", 5, "Lighting", 80.0),
         ]
 
+    def add_default_users(self):
+        # Predefined users
+        user1 = Client("Aldrie", "drei", "drei123")
+        user1.rented_items = [
+            {"name": "Canon EOS R5", "rental_date": datetime(2024, 12, 1).date(), "return_date": datetime(2024, 12, 5).date(), "remark": "Returned On Time", "returned": True, "extra_charge": 0},
+            {"name": "Sony A7 III", "rental_date": datetime(2024, 12, 7).date(), "return_date": datetime(2024, 12, 10).date()},
+        ]
+
+        user2 = Client("Bob", "bob@example.com", "password2")
+        user2.rented_items = [
+            {"name": "Fujifilm X-T4", "rental_date": datetime(2024, 12, 3).date(), "return_date": datetime(2024, 12, 6).date(), "remark": "Returned Late", "returned": True, "extra_charge": 20},
+        ]
+
+        user3 = Client("Charlie", "charlie@example.com", "password3")
+        user3.rented_items = []
+
+        user4 = Client("Diana", "diana@example.com", "password4")
+        user4.rented_items = [
+            {"name": "Canon 50mm f/1.2", "rental_date": datetime(2024, 12, 2).date(), "return_date": datetime(2024, 12, 4).date(), "remark": "Returned Early", "returned": True, "extra_charge": 0},
+        ]
+
+        user5 = Client("Eve", "eve@example.com", "password5")
+        user5.rented_items = [
+            {"name": "Sony 24-70mm f/2.8", "rental_date": datetime(2024, 12, 5).date(), "return_date": datetime(2024, 12, 9).date()},
+        ]
+
+        self.users.extend([user1, user2, user3, user4, user5])
+
+
     def create_account(self):
+        subprocess.run('clear')
         print("\n--- Create Account ---")
         name = input("Enter your name: ")
         email = input("Enter your email: ")
@@ -421,13 +523,16 @@ class System:
         for user in self.users:
             if user.email == email:
                 print("This email is already registered. Please try again.")
+                input("Press Enter to continue...")
                 return
 
         new_user = Client(name, email, password)
         self.users.append(new_user)
         print("Account created successfully! Please log in.")
+        input("Press Enter to continue...")
 
     def login(self):
+        subprocess.run('clear')
         print("\n--- Login ---")
         email = input("Enter your email: ")
         password = input("Enter your password: ")
@@ -441,9 +546,11 @@ class System:
                     user.menu()
                     return
             print("Invalid credentials. Please try again.")
+            input("Press Enter to continue...")
 
     def run(self):
         while True:
+            subprocess.run('clear')
             print("\n--- Welcome to the System ---")
             print("1. Login")
             print("2. Create Account")
@@ -459,7 +566,9 @@ class System:
                 break
             else:
                 print("Invalid choice. Please try again.")
+                input("Press Enter to continue...")
 
 system = System()
 system.run()
     
+                
