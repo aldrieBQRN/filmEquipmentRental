@@ -505,32 +505,31 @@ class System:
 
     def add_default_users(self):
         # Predefined users
-        user1 = Client("Aldrie", "drei", "drei123")
+        user1 = Client("Aldrie Baquiran", "drei", "drei123")
         user1.rented_items = [
             {"name": "Canon EOS R5", "rental_date": datetime(2024, 12, 1).date(), "return_date": datetime(2024, 12, 5).date(), "remark": "Returned On Time", "returned": True, "extra_charge": 0},
             {"name": "Sony A7 III", "rental_date": datetime(2024, 12, 7).date(), "return_date": datetime(2024, 12, 10).date()},
         ]
 
-        user2 = Client("Bob", "bob@example.com", "password2")
+        user2 = Client("Bob Mendoza", "bob17@gmail.com", "bob17")
         user2.rented_items = [
             {"name": "Fujifilm X-T4", "rental_date": datetime(2024, 12, 3).date(), "return_date": datetime(2024, 12, 6).date(), "remark": "Returned Late", "returned": True, "extra_charge": 20},
         ]
 
-        user3 = Client("Charlie", "charlie@example.com", "password3")
+        user3 = Client("Charlie Pot", "charlie03@gmail.com", "charlie3")
         user3.rented_items = []
 
-        user4 = Client("Diana", "diana@example.com", "password4")
+        user4 = Client("Claire Cabral", "claire09@gmail.com", "claire09")
         user4.rented_items = [
             {"name": "Canon 50mm f/1.2", "rental_date": datetime(2024, 12, 2).date(), "return_date": datetime(2024, 12, 4).date(), "remark": "Returned Early", "returned": True, "extra_charge": 0},
         ]
 
-        user5 = Client("Eve", "eve@example.com", "password5")
+        user5 = Client("Clarisse Cabral", "clarisse15@gmail.com", "clarisse15")
         user5.rented_items = [
             {"name": "Sony 24-70mm f/2.8", "rental_date": datetime(2024, 12, 5).date(), "return_date": datetime(2024, 12, 9).date()},
         ]
 
         self.users.extend([user1, user2, user3, user4, user5])
-
 
     def create_account(self):
         subprocess.run('clear')
@@ -589,10 +588,3 @@ class System:
 
 system = System()
 system.run()
-    
-                
-
-
-
-
-
